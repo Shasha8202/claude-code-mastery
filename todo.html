@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>투두 리스트</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .todo-item-enter {
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .todo-item-exit {
+            animation: slideOut 0.3s ease-out;
+        }
+
+        @keyframes slideOut {
+            from {
+                opacity: 1;
+                transform: translateX(0);
+            }
+            to {
+                opacity: 0;
+                transform: translateX(100%);
+            }
+        }
+
+        .line-through {
+            text-decoration: line-through;
+            color: #9ca3af;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen py-8">
+    <div class="max-w-2xl mx-auto px-4">
+        <!-- 헤더 -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">📝 투두 리스트</h1>
+            <p class="text-gray-600">오늘의 작업을 관리하세요</p>
+        </div>
+
+        <!-- 입력 섹션 -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <div class="flex gap-2">
+                <input
+                    type="text"
+                    id="todoInput"
+                    class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="새로운 작업을 입력하세요..."
+                    autocomplete="off"
+                >
+                <button
+                    id="addBtn"
+                    class="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-6 py-2 rounded-lg transition-colors duration-200"
+                >
+                    추가
+                </button>
+            </div>
+        </div>
+
+        <!-- 통계 섹션 -->
+        <div class="grid grid-cols-3 gap-4 mb-6">
+            <div class="bg-white rounded-lg shadow-md p-4 text-center">
+                <div class="text-2xl font-bold text-gray-800" id="totalCount">0</div>
+                <div class="text-gray-600 text-sm">총 작업</div>
+            </div>
+            <div class="bg-white rounded-lg shadow-md p-4 text-center">
+                <div class="text-2xl font-bold text-green-500" id="completeCount">0</div>
+                <div class="text-gray-600 text-sm">완료</div>
+            </div>
+            <div class="bg-white rounded-lg shadow-md p-4 text-center">
+                <div class="text-2xl font-bold text-orange-500" id="pendingCount">0</div>
+                <div class="text-gray-600 text-sm">남은 작업</div>
+            </div>
+        </div>
+
+        <!-- 필터 버튼 -->
+        <div class="flex gap-2 mb-6">
+            <button
+                class="filter-btn active px-4 py-2 rounded-lg font-semibold transition-colors duration-200 bg-blue-500 text-white"
+                data-filter="all"
+            >
+                전체
+            </button>
+            <button
+                class="filter-btn px-4 py-2 rounded-lg font-semibold transition-colors duration-200 bg-gray-300 text-gray-800 hover:bg-gray-400"
+                data-filter="active"
+            >
+                진행 중
+            </button>
+            <button
+                class="filter-btn px-4 py-2 rounded-lg font-semibold transition-colors duration-200 bg-gray-300 text-gray-800 hover:bg-gray-400"
+                data-filter="completed"
+            >
+                완료됨
+            </button>
+        </div>
+
+        <!-- 투두 목록 -->
+        <div id="todoList" class="space-y-2">
+            <!-- 투두 아이템이 여기에 추가됨 -->
+        </div>
+
+        <!-- 빈 상태 메시지 -->
+        <div id="emptyMessage" class="bg-gray-200 rounded-lg p-8 text-center text-gray-600">
+            작업을 추가하세요! 📌
+        </div>
+
+        <!-- 모든 완료 메시지 -->
+        <div id="allCompletedMessage" class="hidden bg-green-100 rounded-lg p-8 text-center text-green-800 font-semibold">
+            모든 작업을 완료했습니다! 🎉
+        </div>
+    </div>
+
+    <script>
+        // 상태 관리
+        let todos = JSON.parse(localStorage.getItem('todos')) || [];
+        let currentFilter = 'all';
+
+        const todoInput = document.getElementById('todoInput');
+        const addBtn = document.getElementById('addBtn');
+        const todoList = document.getElementById('todoList');
+        const emptyMessage = document.getElementById('emptyMessage');
+        const allCompletedMessage = document.getElementById('allCompletedMessage');
+        const filterBtns = document.querySelectorAll('.filter-btn');
+
+        // 투두 추가
+        function addTodo() {
+            const text = todoInput.value.trim();
+            if (!text) {
+                alert('작업을 입력하세요!');
+                return;
+            }
+
+            const todo = {
+                id: Date.now(),
+                text: text,
+                completed: false,
+                createdAt: new Date().toLocaleString('ko-KR')
+            };
+
+            todos.unshift(todo);
+            saveTodos();
+            todoInput.value = '';
+            todoInput.focus();
+            renderTodos();
+        }
+
+        // 투두 삭제
+        function deleteTodo(id) {
+            todos = todos.filter(todo => todo.id !== id);
+            saveTodos();
+            renderTodos();
+        }
+
+        // 투두 완료 토글
+        function toggleTodo(id) {
+            const todo = todos.find(t => t.id === id);
+            if (todo) {
+                todo.completed = !todo.completed;
+                saveTodos();
+                renderTodos();
+            }
+        }
+
+        // 로컬스토리지에 저장
+        function saveTodos() {
+            localStorage.setItem('todos', JSON.stringify(todos));
+        }
+
+        // 투두 렌더링
+        function renderTodos() {
+            todoList.innerHTML = '';
+
+            const filteredTodos = todos.filter(todo => {
+                if (currentFilter === 'completed') return todo.completed;
+                if (currentFilter === 'active') return !todo.completed;
+                return true;
+            });
+
+            // 필터된 투두가 없는 경우
+            if (filteredTodos.length === 0) {
+                todoList.innerHTML = '';
+                if (currentFilter === 'all' && todos.length === 0) {
+                    emptyMessage.classList.remove('hidden');
+                    allCompletedMessage.classList.add('hidden');
+                } else if (currentFilter === 'completed' && todos.some(t => t.completed)) {
+                    emptyMessage.classList.add('hidden');
+                    allCompletedMessage.classList.add('hidden');
+                } else if (todos.every(t => t.completed) && todos.length > 0) {
+                    emptyMessage.classList.add('hidden');
+                    allCompletedMessage.classList.remove('hidden');
+                } else {
+                    emptyMessage.classList.add('hidden');
+                    allCompletedMessage.classList.add('hidden');
+                }
+                return;
+            }
+
+            emptyMessage.classList.add('hidden');
+            allCompletedMessage.classList.add('hidden');
+
+            filteredTodos.forEach(todo => {
+                const li = document.createElement('li');
+                li.className = `todo-item-enter bg-white rounded-lg shadow-md p-4 flex items-center justify-between hover:shadow-lg transition-shadow duration-200`;
+                li.innerHTML = `
+                    <div class="flex-1 flex items-center gap-4">
+                        <input
+                            type="checkbox"
+                            ${todo.completed ? 'checked' : ''}
+                            onchange="toggleTodo(${todo.id})"
+                            class="w-5 h-5 text-blue-500 rounded focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                        >
+                        <div class="flex-1">
+                            <p class="${todo.completed ? 'line-through' : 'text-gray-800'} font-medium">
+                                ${escapeHtml(todo.text)}
+                            </p>
+                            <p class="text-xs text-gray-500 mt-1">
+                                ${todo.createdAt}
+                            </p>
+                        </div>
+                    </div>
+                    <button
+                        onclick="deleteTodo(${todo.id})"
+                        class="text-red-500 hover:text-red-700 font-semibold px-3 py-1 rounded hover:bg-red-50 transition-colors duration-200"
+                    >
+                        삭제
+                    </button>
+                `;
+                todoList.appendChild(li);
+            });
+
+            updateStats();
+        }
+
+        // 통계 업데이트
+        function updateStats() {
+            const total = todos.length;
+            const completed = todos.filter(t => t.completed).length;
+            const pending = total - completed;
+
+            document.getElementById('totalCount').textContent = total;
+            document.getElementById('completeCount').textContent = completed;
+            document.getElementById('pendingCount').textContent = pending;
+        }
+
+        // XSS 방지
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, m => map[m]);
+        }
+
+        // 필터 변경
+        filterBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                filterBtns.forEach(b => {
+                    b.classList.remove('bg-blue-500', 'text-white');
+                    b.classList.add('bg-gray-300', 'text-gray-800');
+                });
+                btn.classList.remove('bg-gray-300', 'text-gray-800');
+                btn.classList.add('bg-blue-500', 'text-white');
+
+                currentFilter = btn.dataset.filter;
+                renderTodos();
+            });
+        });
+
+        // 이벤트 리스너
+        addBtn.addEventListener('click', addTodo);
+        todoInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') addTodo();
+        });
+
+        // 초기 렌더링
+        renderTodos();
+    </script>
+</body>
+</html>

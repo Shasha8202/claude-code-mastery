@@ -1,0 +1,52 @@
+/* 스무스 스크롤 */
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 80px;
+}
+
+/* 네비게이션 스크롤 효과 */
+#navbar {
+  background: transparent;
+}
+
+#navbar.scrolled {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+/* 네비게이션 활성 링크 */
+nav a.active {
+  color: #2563eb;
+}
+
+/* 스크롤 시 페이드인 애니메이션 */
+.fade-in {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+}
+
+.fade-in.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* 스킬 프로그레스 바 애니메이션 */
+.skill-bar {
+  transition: width 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 연락 폼 포커스 효과 */
+#contact-form input:focus,
+#contact-form textarea:focus {
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+/* 타임라인 반응형 보정 */
+@media (max-width: 767px) {
+  #experience .md\:flex-row-reverse {
+    flex-direction: row;
+  }
+}
